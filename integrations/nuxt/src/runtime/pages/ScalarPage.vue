@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { useRoute } from '#imports'
-import type { Meta } from '~/src/types'
+
+import type { Meta } from '../../types'
 
 const route = useRoute()
 const meta = route.meta as Meta
@@ -17,5 +18,7 @@ if (
 </script>
 
 <template>
-  <ScalarApiReference :configuration="meta.configuration" />
+  <div>
+    <ScalarApiReference :configuration="meta.configuration" />
+  </div>
 </template>

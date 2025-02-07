@@ -3,7 +3,8 @@ import { useHead, useRequestURL, useSeoMeta } from '#imports'
 import { ModernLayout, parse } from '@scalar/api-reference'
 import type { ReferenceConfiguration } from '@scalar/types/legacy'
 import { reactive, ref, toRaw } from 'vue'
-import type { Configuration } from '~/src/types'
+
+import type { Configuration } from '../../types'
 
 const props = defineProps<{
   configuration: Configuration
