@@ -48,11 +48,11 @@ export const createRequestOperation = ({
   environment: object | undefined
   example: RequestExample
   globalCookies: Cookie[]
-  proxyUrl?: string
+  proxyUrl: string | undefined
   request: Operation
   securitySchemes: Record<string, SecurityScheme>
   selectedSecuritySchemeUids?: Operation['selectedSecuritySchemeUids']
-  server?: Server
+  server?: Server | undefined
   status?: EventBus<RequestStatus>
 }): ErrorResponse<{
   controller: AbortController
@@ -113,8 +113,14 @@ export const createRequestOperation = ({
     // Grab the security headers, cookies and url params
     const security = buildRequestSecurity(selectedSecuritySchemes, env)
 
+    // For securityheaders, we lowercase them so they can be uppercased later (in normalizeHeaders)
+    Object.keys(security.headers).forEach((key) => {
+      security.headers[key.toLowerCase()] = security.headers[key] ?? ''
+      delete security.headers[key]
+    })
+
     // Populate all forms of auth to the request segments
-    const headers = { ..._headers, ...security.headers }
+    const headers = { ...security.headers, ..._headers }
     const cookieParams = [..._cookieParams, ...security.cookies]
     const urlParams = new URLSearchParams([
       ..._urlParams,
@@ -160,7 +166,7 @@ export const createRequestOperation = ({
 
     const proxiedRequest = new Request(proxiedUrl, {
       method: request.method.toUpperCase(),
-      body,
+      body: body ?? null,
       headers,
     })
 

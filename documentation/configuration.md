@@ -292,6 +292,10 @@ To make authentication easier you can prefill the credentials for your users:
     // The OpenAPI file has keys for all security schemes:
     // Which one should be used by default?
     preferredSecurityScheme: 'my_custom_security_scheme',
+    // Can also be an array of preferred security schemes to select multiple:
+    preferredSecuritySchemes: ['my_custom_security_scheme', 'another_security_scheme'],
+    // Or an array of arrays for complex security requirements:
+    preferredSecuritySchemes: [['my_custom_security_scheme', 'another_security_scheme'], 'yet_another_security_scheme'],
     // The `my_custom_security_scheme` security scheme is of type `apiKey`, so prefill the token:
     apiKey: {
       token: 'super-secret-token',
@@ -397,7 +401,7 @@ Customize how webhook URLs are generated. This function receives the webhook obj
 
 > Note: This must be passed through JavaScript, setting a data attribute will not work.
 
-````js
+```js
 // Default behavior - results in hash: #webhook/webhook-name
 {
   generateWebhookSlug: (webhook) => slug(webhook.name)
@@ -405,8 +409,24 @@ Customize how webhook URLs are generated. This function receives the webhook obj
 
 // Custom example - results in hash: #webhook/v1-post-user-created
 {
-  generateWebhookSlug: (webhook) => `v1-${webhook.method?.toLowerCase()}-${webhook.name}`
+  generateWebhookSlug: (webhook) =>
+    `v1-${webhook.method?.toLowerCase()}-${webhook.name}`
 }
+```
+
+#### onLoaded?: () => void
+
+Callback that triggers as soon as the references are lazy loaded.
+
+> Note: This must be passed through JavaScript, setting a data attribute will not work.
+
+```js
+{
+  onLoaded: () => {
+    console.log('References loaded')
+  }
+}
+```
 
 #### withDefaultFonts?: boolean
 
@@ -416,7 +436,7 @@ By default we’re using Inter and JetBrains Mono, served by Google Fonts. If yo
 {
   withDefaultFonts: false
 }
-````
+```
 
 #### defaultOpenAllTags?: boolean
 

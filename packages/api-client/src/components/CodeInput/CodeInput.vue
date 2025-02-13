@@ -36,7 +36,7 @@ const props = withDefaults(
     disableCloseBrackets?: boolean
     enum?: string[]
     examples?: string[]
-    type?: string
+    type?: string | string[] | undefined
     nullable?: boolean
     withVariables?: boolean
     importCurl?: boolean
@@ -205,6 +205,14 @@ const handleKeyDown = (key: string, event: KeyboardEvent) => {
     }
   }
 }
+
+const defaultType = computed(() => {
+  return Array.isArray(props.type)
+    ? // Find the first type, that’s not 'null'
+      (props.type.find((type) => type !== 'null') ?? 'string')
+    : // If it’s not an array, just return the type
+      props.type
+})
 </script>
 <script lang="ts">
 // use normal <script> to declare options
@@ -222,7 +230,7 @@ export default {
     <DataTableInputSelect
       :default="props.default"
       :modelValue="modelValue"
-      :type="type"
+      :type="defaultType"
       :value="props.enum"
       @update:modelValue="emit('update:modelValue', $event)" />
   </template>
@@ -361,7 +369,7 @@ export default {
   background-color: transparent;
   border-right: none;
   color: var(--scalar-color-3);
-  font-size: var(--scalar-small);
+  font-size: var(--scalar-mini);
   line-height: 1.44;
   border-radius: 0 0 0 3px;
 }

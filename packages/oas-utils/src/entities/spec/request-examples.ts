@@ -20,25 +20,51 @@ import type { Server } from './server'
  * The request schema should be stored in the request and any
  * parameters should be validated against that
  */
-export const requestExampleParametersSchema = z.object({
-  key: z.string().default(''),
-  value: z.coerce.string().default(''),
-  enabled: z.boolean().default(true),
-  file: z.any().optional(),
-  description: z.string().optional(),
-  required: z.boolean().optional(),
-  enum: z.array(z.string()).optional(),
-  examples: z.array(z.string()).optional(),
-  type: z.string().optional(),
-  format: z.string().optional(),
-  minimum: z.number().optional(),
-  maximum: z.number().optional(),
-  default: z.any().optional(),
-  nullable: z.boolean().optional(),
-})
+export const requestExampleParametersSchema = z
+  .object({
+    key: z.string().default(''),
+    value: z.coerce.string().default(''),
+    enabled: z.boolean().default(true),
+    file: z.any().optional(),
+    description: z.string().optional(),
+    required: z.boolean().optional(),
+    enum: z.array(z.string()).optional(),
+    examples: z.array(z.string()).optional(),
+    type: z
+      .union([
+        // 'string'
+        z.string(),
+        // ['string', 'null']
+        z.array(z.string()),
+      ])
+      .optional(),
+    format: z.string().optional(),
+    minimum: z.number().optional(),
+    maximum: z.number().optional(),
+    default: z.any().optional(),
+    nullable: z.boolean().optional(),
+  })
+  // set nullable: to true if type is ['string', 'null']
+  .transform((data) => {
+    // type: ['string', 'null'] -> nullable: true
+    if (Array.isArray(data.type) && data.type.includes('null')) {
+      data = { ...data, nullable: true }
+    }
+
+    // Hey, if it’s just one value and 'null', we can make it a string and ditch the 'null'.
+    if (
+      Array.isArray(data.type) &&
+      data.type.length === 2 &&
+      data.type.includes('null')
+    ) {
+      data = { ...data, type: data.type.find((item) => item !== 'null') }
+    }
+
+    return data
+  })
 
 /** Convert the array of parameters to an object keyed by the parameter name */
-function parameterArrayToObject(params: RequestExampleParameter[]) {
+export function parameterArrayToObject(params: RequestExampleParameter[]) {
   return params.reduce<Record<string, string>>((map, param) => {
     map[param.key] = param.value
     return map
@@ -395,19 +421,19 @@ export function createExampleFromRequest(
       },
     })
 
-    if (requestBody?.body?.mimeType === 'application/json') {
+    if (requestBody?.mimeType === 'application/json') {
       body.activeBody = 'raw'
       body.raw = {
         encoding: 'json',
-        value: requestBody.body.text ?? JSON.stringify({}),
+        value: requestBody.text ?? JSON.stringify({}),
       }
     }
 
-    if (requestBody?.body?.mimeType === 'application/xml') {
+    if (requestBody?.mimeType === 'application/xml') {
       body.activeBody = 'raw'
       body.raw = {
         encoding: 'xml',
-        value: requestBody.body.text ?? '',
+        value: requestBody.text ?? '',
       }
     }
 
@@ -415,27 +441,39 @@ export function createExampleFromRequest(
      *  TODO: Are we loading example files from somewhere based on the spec?
      *  How are we handling the body values
      */
-    if (requestBody?.body?.mimeType === 'application/octet-stream') {
+    if (requestBody?.mimeType === 'application/octet-stream') {
       body.activeBody = 'binary'
       body.binary = undefined
     }
 
     if (
-      requestBody?.body?.mimeType === 'application/x-www-form-urlencoded' ||
-      requestBody?.body?.mimeType === 'multipart/form-data'
+      requestBody?.mimeType === 'application/x-www-form-urlencoded' ||
+      requestBody?.mimeType === 'multipart/form-data'
     ) {
       body.activeBody = 'formData'
       body.formData = {
         encoding:
-          requestBody.body.mimeType === 'application/x-www-form-urlencoded'
+          requestBody.mimeType === 'application/x-www-form-urlencoded'
             ? 'urlencoded'
             : 'form-data',
-        value: (requestBody.body.params || []).map((param) => ({
+        value: (requestBody.params || []).map((param) => ({
           key: param.name,
           value: param.value || '',
           enabled: true,
         })),
       }
+    }
+
+    // Add the content-type header if it doesn't exist
+    if (
+      requestBody?.mimeType &&
+      !parameters.headers.find((h) => h.key.toLowerCase() === 'content-type')
+    ) {
+      parameters.headers.push({
+        key: 'Content-Type',
+        value: requestBody.mimeType,
+        enabled: true,
+      })
     }
   }
 

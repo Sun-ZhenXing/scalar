@@ -7,6 +7,7 @@ import SidebarListElement from '@/components/Sidebar/SidebarListElement.vue'
 import ViewLayout from '@/components/ViewLayout/ViewLayout.vue'
 import ViewLayoutContent from '@/components/ViewLayout/ViewLayoutContent.vue'
 import { useSidebar } from '@/hooks'
+import { PathId } from '@/routes'
 import { useWorkspace } from '@/store'
 import { useActiveEntities } from '@/store/active-entities'
 import { ScalarButton, ScalarIcon } from '@scalar/components'
@@ -20,12 +21,14 @@ import ServerForm from './ServerForm.vue'
 const { activeWorkspaceCollections, activeWorkspace, activeCollection } =
   useActiveEntities()
 const { servers, events, serverMutators } = useWorkspace()
-const { push } = useRouter()
+const { push, resolve } = useRouter()
 const route = useRoute()
 const { collapsedSidebarFolders, toggleSidebarFolder } = useSidebar()
 
-const collectionIdParam = computed(() => route.params.collectionId as string)
-const serverUidParam = computed(() => route.params.servers as string)
+const collectionUidParam = computed(
+  () => route.params[PathId.Collection] as string,
+)
+const serverUidParam = computed(() => route.params[PathId.Servers] as string)
 
 const showChildren = (key: string) => {
   return collapsedSidebarFolders[key]
@@ -49,17 +52,25 @@ const handleNavigation = (
   uid: string,
   collectionId: string,
 ) => {
-  const path = `/workspace/${activeWorkspace?.value?.uid}/servers/${collectionId}/${uid}`
+  const to = {
+    name: 'servers',
+    params: {
+      [PathId.Workspace]: activeWorkspace.value?.uid,
+      [PathId.Collection]: collectionId,
+      [PathId.Servers]: uid,
+    },
+  }
+
   if (event.metaKey) {
-    window.open(path, '_blank')
+    window.open(resolve(to).href, '_blank')
   } else {
-    push({ path })
+    push(to)
   }
 }
 
 function handleDelete(uid: string) {
   if (!activeCollection?.value?.uid) return
-  serverMutators.delete(uid, collectionIdParam.value)
+  serverMutators.delete(uid, collectionUidParam.value)
 }
 
 const hasServers = computed(() => Object.keys(servers).length > 0)
@@ -96,9 +107,9 @@ const hasServers = computed(() => Object.keys(servers).length > 0)
                   </div>
                 </span>
                 <span
-                  class="break-all line-clamp-1 font-medium text-left w-full"
-                  >{{ collection.info?.title ?? '' }}</span
-                >
+                  class="break-all line-clamp-1 font-medium text-left w-full">
+                  {{ collection.info?.title ?? '' }}
+                </span>
                 <ScalarButton
                   class="hidden group-hover:block px-0.5 py-0 hover:bg-b-3 hover:text-c-1 group-focus-visible:opacity-100 group-has-[:focus-visible]:opacity-100 aspect-square h-fit"
                   size="sm"
@@ -156,7 +167,7 @@ const hasServers = computed(() => Object.keys(servers).length > 0)
     <ViewLayoutContent class="flex-1">
       <ServerForm
         v-if="hasServers"
-        :collectionId="collectionIdParam"
+        :collectionId="collectionUidParam"
         :serverUid="serverUidParam" />
       <EmptyState v-else />
     </ViewLayoutContent>

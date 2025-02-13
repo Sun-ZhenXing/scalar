@@ -53,6 +53,39 @@ describe('getSelectedSecuritySchemeUids', () => {
     expect(result).toEqual(['basic-uid'])
   })
 
+  it('should select multiple security schemes when preferred scheme is an array', () => {
+    const securityRequirements = ['basic-auth', 'api-key']
+    const authentication = {
+      preferredSecurityScheme: ['basic-auth', 'api-key'],
+    }
+    const result = getSelectedSecuritySchemeUids(
+      securityRequirements,
+      authentication,
+      securitySchemeMap,
+    )
+    expect(result).toEqual(['basic-uid', 'apikey-uid'])
+  })
+
+  it('should select multiple security schemes when preferred scheme is an array including complex', () => {
+    const securityRequirements = [
+      'basic-auth',
+      'api-key',
+      ['basic-auth', 'api-key', 'oauth2'],
+    ]
+    const authentication = {
+      preferredSecurityScheme: [['basic-auth', 'api-key', 'oauth2'], 'api-key'],
+    }
+    const result = getSelectedSecuritySchemeUids(
+      securityRequirements,
+      authentication,
+      securitySchemeMap,
+    )
+    expect(result).toEqual([
+      ['basic-uid', 'apikey-uid', 'oauth-uid'],
+      'apikey-uid',
+    ])
+  })
+
   it('should handle array-type security requirements', () => {
     const securityRequirements = [['basic-auth', 'api-key']]
     const result = getSelectedSecuritySchemeUids(
@@ -70,7 +103,7 @@ describe('getSelectedSecuritySchemeUids', () => {
       undefined,
       securitySchemeMap,
     )
-    expect(result).toEqual([undefined])
+    expect(result).toEqual([])
   })
 
   it('should handle undefined preferred scheme', () => {
@@ -443,6 +476,20 @@ describe('importSpecToWorkspace', () => {
       if (res.error) throw res.error
 
       expect(res.requests[0].security).toEqual([{}])
+    })
+
+    it('handles empty operation security requirements', async () => {
+      const res = await importSpecToWorkspace({
+        ...galaxy,
+        paths: {
+          '/test': {
+            get: { security: [] },
+          },
+        },
+      })
+
+      if (res.error) throw res.error
+      expect(res.requests[0].security).toEqual([])
     })
 
     it('imports path-level parameters', async () => {
